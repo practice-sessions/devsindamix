@@ -59,23 +59,27 @@ router.post('/', passport.authenticate(
   }
 );
 
-//@route   DELETE api/posts/:id       <Single posts>
+//@route   DELETE api/posts/:id       <Single post>
 //@desc    Delete post
 //@access  Private - reflects protected route status
 router.delete('/:id', passport.authenticate('jwt', { session: false }),
   (req, res) => {
     Profile.findOne({ user: req.user.id }).then(profile => {
-      // Check for post, prevent malicious deletion
-      if (post.user.toString !== req.user.id) {
+      Post.findById(req.params.id).then(post => {
+        // Check for post owner, prevent malicious deletion
+        if (post.user.toString() !== req.user.id) {
+          return res.status(401)
+            .json({ notauthorized: 'User not authorised' });
+        }
 
-        return res.status(401)
-          .json({ notauthorized: 'User not authorised' });
-      }
+        // .toString used above to side step issue of post.user which
+        // is NOT a string, and req.user.id which is a string
 
-
-      // Delete                                           
-      post.remove().then(() => res.json({ success: 'true' }));
-    }).catch(err => res.status(404).json({ postnotfound: 'No post found' }));
+        // Delete                                           
+        post.remove().then(() => res.json({ success: 'true' }));
+      }).catch(err => res.status(404).json({ postnotfound: 'No post found' })
+      );
+    });
   }
 );
 
